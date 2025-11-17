@@ -1,0 +1,75 @@
+# -----------------------
+# Node
+# -----------------------
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+package-lock.json
+yarn.lock
+pnpm-lock.yaml
+
+# -----------------------
+# Environment Variables
+# -----------------------
+.env
+.env.*.local
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+
+# -----------------------
+# Build Output
+# -----------------------
+dist/
+build/
+.tmp/
+
+# -----------------------
+# TypeScript
+# -----------------------
+*.tsbuildinfo
+
+# -----------------------
+# Logs
+# -----------------------
+logs/
+*.log
+*.log.*
+debug.log
+
+# -----------------------
+# IDE / Editor
+# -----------------------
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# -----------------------
+# OS Files
+# -----------------------
+.DS_Store
+Thumbs.db
+
+# -----------------------
+# Coverage
+# -----------------------
+coverage/
+.nyc_output/
+
+# -----------------------
+# Knex Migrations / Seeds
+# (Ignore compiled JS, keep TS)
+# -----------------------
+/src/migrations/*.js
+/src/seeds/*.js
+
+# -----------------------
+# GitWhistle Specific
+# -----------------------
+# Cache for GitHub API syncs
+.cache/
+.temp/
