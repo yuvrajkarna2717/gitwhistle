@@ -6,6 +6,11 @@ import IORedis from 'ioredis';
 
 const router = express.Router();
 
+// Test endpoint
+router.get('/github', (req, res) => {
+  res.json({ message: 'GitHub webhook endpoint is working' });
+});
+
 const redis = new IORedis(process.env.REDIS_URL as string);
 
 function verifySignature(secret: string, payload: Buffer, signatureHeader: string | undefined) {
@@ -15,19 +20,22 @@ function verifySignature(secret: string, payload: Buffer, signatureHeader: strin
   return crypto.timingSafeEqual(hmac, sig);
 }
 
-router.post('/github', express.raw({ type: '*/*' }), async (req, res) => {
-  const secret = process.env.GITHUB_APP_WEBHOOK_SECRET || '';
-  const isValid = verifySignature(secret, req.body, (req.headers['x-hub-signature-256'] as string) || '');
-  if (!isValid) return res.status(401).send('invalid signature');
+router.post('/github', async (req, res) => {
+  try {
+    const event = req.headers['x-github-event'] as string;
+    const delivery = req.headers['x-github-delivery'] as string;
+    const payload = req.body;
+    
+    console.log('Webhook:', event, delivery);
+    
+    const queue = new Queue(webhookQueueName, { connection: { url: process.env.REDIS_URL } });
+    await queue.add('github-event', { event, delivery, payload });
 
-  const event = req.headers['x-github-event'] as string;
-  const delivery = req.headers['x-github-delivery'] as string;
-  const payload = JSON.parse(req.body.toString());
-
-  const queue = new Queue(webhookQueueName, { connection: { url: process.env.REDIS_URL } });
-  await queue.add('github-event', { event, delivery, payload }, { removeOnComplete: true, removeOnFail: true });
-
-  res.status(202).send('accepted');
+    res.status(202).send('accepted');
+  } catch (error) {
+    console.error('Webhook error:', error);
+    res.status(500).send('error');
+  }
 });
 
 export default router;

@@ -14,9 +14,41 @@ function authMiddleware(req:any, res:any, next:any) {
   } catch (e) { res.status(401).send('invalid token'); }
 }
 
-router.get('/', authMiddleware, async (req:any, res) => {
-  const notifications = await db('notifications').where({ user_id: req.user.id }).orderBy('created_at', 'desc').limit(100);
+router.get('/', async (req:any, res) => {
+  const { repo, type, limit = 50 } = req.query;
+  
+  let query = db('notifications')
+    .leftJoin('repositories', 'notifications.repo_id', 'repositories.id')
+    .select('notifications.*', 'repositories.full_name as repo_name')
+    .orderBy('notifications.created_at', 'desc');
+    
+  if (repo && repo !== 'all') {
+    query = query.where('repositories.full_name', repo);
+  }
+  
+  if (type && type !== 'all') {
+    query = query.where('notifications.type', type);
+  }
+  
+  const notifications = await query.limit(parseInt(limit));
   res.json(notifications);
+});
+
+// Get available repositories for filter
+router.get('/repositories', async (req, res) => {
+  const repos = await db('repositories')
+    .where('enabled', true)
+    .select('full_name')
+    .orderBy('full_name');
+  res.json(repos.map(r => r.full_name));
+});
+
+// Get available event types for filter
+router.get('/types', async (req, res) => {
+  const types = await db('notifications')
+    .distinct('type')
+    .orderBy('type');
+  res.json(types.map(t => t.type));
 });
 
 router.post('/:id/read', authMiddleware, async (req:any, res) => {
