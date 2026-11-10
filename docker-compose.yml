@@ -1,0 +1,91 @@
+# Full local stack: PostgreSQL, Redis, migrations, API, worker, and the web app (nginx) on :8080.
+#   cp backend/.env.example backend/.env   # fill in secrets, see ENVIRONMENT.md
+#   docker compose up --build
+# Values below override backend/.env for in-network service addresses.
+
+x-backend-env: &backend-env
+  DATABASE_URL: postgres://gitwhistle:${POSTGRES_PASSWORD:-gitwhistle}@postgres:5432/gitwhistle
+  REDIS_URL: redis://redis:6379
+  APP_URL: ${APP_URL:-http://localhost:8080}
+  API_URL: ${API_URL:-http://localhost:8080}
+  NODE_ENV: ${NODE_ENV:-production}
+  COOKIE_SECURE: ${COOKIE_SECURE:-}
+  TRUST_PROXY: "1"
+
+services:
+  postgres:
+    image: postgres:17-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: gitwhistle
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-gitwhistle}
+      POSTGRES_DB: gitwhistle
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U gitwhistle -d gitwhistle"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+
+  redis:
+    image: redis:7-alpine
+    restart: unless-stopped
+    # BullMQ requires noeviction; AOF keeps queued jobs across restarts.
+    command: ["redis-server", "--appendonly", "yes", "--maxmemory-policy", "noeviction"]
+    volumes:
+      - redisdata:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+
+  migrate:
+    build: ./backend
+    env_file: ./backend/.env
+    environment: *backend-env
+    command: ["node", "src/database/migrate.js", "latest"]
+    depends_on:
+      postgres:
+        condition: service_healthy
+    restart: "no"
+
+  api:
+    build: ./backend
+    env_file: ./backend/.env
+    environment: *backend-env
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+      redis:
+        condition: service_healthy
+    restart: unless-stopped
+
+  worker:
+    build: ./backend
+    env_file: ./backend/.env
+    environment:
+      <<: *backend-env
+      HEALTH_PORT: "4001"
+    command: ["node", "src/worker.js"]
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+      redis:
+        condition: service_healthy
+    restart: unless-stopped
+    stop_grace_period: 35s
+
+  web:
+    build: ./client
+    ports:
+      - "${WEB_PORT:-8080}:80"
+    depends_on:
+      api:
+        condition: service_healthy
+    restart: unless-stopped
+
+volumes:
+  pgdata:
+  redisdata:

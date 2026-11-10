@@ -1,75 +1,27 @@
-# -----------------------
-# Node
-# -----------------------
+# Dependencies (package-lock.json IS committed: Docker and CI use `npm ci`)
 node_modules/
 npm-debug.log*
-yarn-debug.log*
-yarn-error.log*
-pnpm-debug.log*
-package-lock.json
-yarn.lock
-pnpm-lock.yaml
 
-# -----------------------
-# Environment Variables
-# -----------------------
+# Environment and secrets: never commit these
 .env
-.env.*.local
-.env.local
-.env.development.local
-.env.test.local
-.env.production.local
+.env.*
+!.env.example
+keys/
+*.pem
+*.key
 
-# -----------------------
-# Build Output
-# -----------------------
+# Build / test output
 dist/
-build/
+coverage/
 .tmp/
 
-# -----------------------
-# TypeScript
-# -----------------------
-*.tsbuildinfo
-
-# -----------------------
 # Logs
-# -----------------------
 logs/
 *.log
-*.log.*
-debug.log
 
-# -----------------------
-# IDE / Editor
-# -----------------------
+# Editors / OS
 .vscode/
 .idea/
 *.swp
-*.swo
-
-# -----------------------
-# OS Files
-# -----------------------
 .DS_Store
 Thumbs.db
-
-# -----------------------
-# Coverage
-# -----------------------
-coverage/
-.nyc_output/
-
-# -----------------------
-# Knex Migrations / Seeds
-# (Ignore compiled JS, keep TS)
-# -----------------------
-/src/migrations/*.js
-/src/seeds/*.js
-
-# -----------------------
-# GitWhistle Specific
-# -----------------------
-# Cache for GitHub API syncs
-.cache/
-.temp/
